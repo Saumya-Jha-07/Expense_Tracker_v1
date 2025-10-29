@@ -44,6 +44,15 @@ def get_notes():
         return "will add notes later"
     return notes
 
+def get_notes_to_delete():
+    notes = None
+    while True:
+        notes = input("enter the notes to delete : ").strip().lower()
+        if notes:
+            break
+    
+    return notes
+
 def get_category():
     while True:
         category = input("Enter the category : ").strip()
@@ -106,7 +115,7 @@ def get_pageId_and_currentExp(monthName):
             current_expense = row["properties"]["Total Expense"]["number"] or 0
             return pageId,current_expense
     return None,0
-   
+
 def update_exp(pageId , newAmt):
     url = f"https://api.notion.com/v1/pages/{pageId}"
     data = {
@@ -118,7 +127,7 @@ def update_exp(pageId , newAmt):
     if not res.status_code == 200:
         print("❌ Error:", res.text)    
 
-def update_monthly_amount(newAmount,monthName):
+def increase_monthly_amount(newAmount,monthName):
     # get the current amt
     res = get_pageId_and_currentExp(monthName)
     if res == None: 
@@ -132,6 +141,21 @@ def update_monthly_amount(newAmount,monthName):
     update_exp(pageId,total_amt)
     # confirmation message
     print(f"✅ Updated {monthName}'s total expense from {currentAmt} to {total_amt}")
+
+def reduce_monthly_amount(amountToRemove,monthName):
+    # get the current amt
+    res = get_pageId_and_currentExp(monthName)
+    if res == None: 
+        print("Not able to get pageId !")
+        return 
+    pageId = res[0]
+    currentAmt = res[1]
+    # now total amount will be
+    newTotal = currentAmt - amountToRemove
+    # now edit the data by POST req
+    update_exp(pageId,newTotal)
+    # confirmation message
+    print(f"✅ Updated {monthName}'s total expense from {currentAmt} to {newTotal}")
 
 def save_to_notion(db_id,notes,category,amount,today,user_month):
     #api call 
@@ -165,7 +189,7 @@ def add_expense():
 
     save_to_notion(db_id,notes,category,amount,today,user_month)
     # for updating the total spent in a month
-    update_monthly_amount(amount,user_month)
+    increase_monthly_amount(amount,user_month)
 
 def detailed_expense(data,category):
     print()
@@ -227,10 +251,52 @@ def view_expenses():
 
             else : continue
 
+def delete_expense():
+    month = get_month()
+    note_to_delete = get_notes_to_delete()
+    key = f"{month}_{datetime.now().year}_db_id"
+    db_id = os.getenv(key)
+
+    if not db_id:
+        print(f"❌ No DB found for {month}")
+        return
+    
+     # Step 1: Find the page with given Notes
+    url = f"https://api.notion.com/v1/databases/{db_id}/query"
+    payload = {
+        "filter": {
+            "property": "Notes",
+            "title": {
+                "equals": note_to_delete
+            }
+        }
+    }
+    res = requests.post(url, headers=headers, json=payload)
+    data = res.json()
+    
+    if not data["results"]:
+        print(f"❌ No entry found with note: {note_to_delete}")
+        return
+    
+    page_id = data["results"][0]["id"]
+    amount = data["results"][0]["properties"]["Amount"]["number"] or 0
+
+    # Step 2: Archive (delete) it
+    del_url = f"https://api.notion.com/v1/pages/{page_id}"
+    res = requests.patch(del_url, headers=headers, json={"archived": True})
+
+    if res.status_code == 200:
+        print(f"✅ Deleted entry with note: {note_to_delete}")
+    else:
+        print("❌ Error deleting:", res.text)
+    
+    reduce_monthly_amount(amount,month)
+    
+
 def main():
     print("Welcome to notion expense tracker !\n")
     while True:
-        print("1. Add a new expense : \n2. View expenses : \n3. Exit the app")
+        print("1. Add a new expense : \n2. View expenses : \n3. Delete an expense : \n4. Exit the app")
         choice = input("Enter your choice : ").strip()
 
         match choice:
@@ -238,8 +304,9 @@ def main():
                 add_expense()
             case "2":
                 view_expenses()
-                pass
             case "3":
+                delete_expense()
+            case "4":
                 print("😊 Thankyou for ur visit!")
                 break
             case _:
