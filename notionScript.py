@@ -296,7 +296,7 @@ def delete_expense():
 def main():
     print("Welcome to notion expense tracker !\n")
     while True:
-        print("1. Add a new expense : \n2. View expenses : \n3. Delete an expense : \n4. Exit the app")
+        print("1. Add a new expense \n2. View expenses \n3. Delete an expense \n4. Exit the app")
         choice = input("Enter your choice : ").strip()
 
         match choice:
