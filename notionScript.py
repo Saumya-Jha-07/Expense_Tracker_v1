@@ -54,11 +54,22 @@ def get_notes_to_delete():
     return notes
 
 def get_category():
+    categories = {
+        1 : "Food",
+        2 : "Flat",
+        3 : "People",
+        4 : "Personal",
+        5 : "Misc"
+    }
     while True:
-        category = input("Enter the category : ").strip()
-        if category:
-            return category
-        print("Please enter the Category!")
+        print("\nChoose category from below :- ")
+        try : 
+            choice = int(input("1. Food\n2. Flat\n3. People\n4. Personal\n5. Misc\nEnter your choice : ").strip())
+            if 0 < choice < 6:
+                return categories[choice]
+            print("Please Enter a valid number!")
+        except ValueError as e :
+            print(f"Error : {e}")
 
 def get_amount():
     while  True:
