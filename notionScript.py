@@ -64,7 +64,14 @@ def get_category():
     while True:
         print("\nChoose category from below :- ")
         try : 
-            choice = int(input("1. Food\n2. Flat\n3. People\n4. Personal\n5. Misc\nEnter your choice : ").strip())
+            choice = int(input("1. Food\n2. Flat\n3. People\n4. Personal\n5. Misc\n6. I want new category\nEnter your choice : ").strip())
+
+            if choice == 6:
+                while True:
+                    category = input("Enter your own category : ").strip()
+                    if category : return category
+                    print("Please enter a valid category!")
+
             if 0 < choice < 6:
                 return categories[choice]
             print("Please Enter a valid number!")
